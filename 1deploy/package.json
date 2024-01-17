@@ -1,0 +1,17 @@
+{
+  "name": "chaibackend",
+  "version": "1.0.0",
+  "description": "a basic app to deploy",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
+  },
+  "author": "vikash pandey",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "env": "^0.0.2",
+    "express": "^4.18.2"
+  }
+}
