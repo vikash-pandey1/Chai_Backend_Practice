@@ -1,0 +1,3 @@
+// lecture 10
+
+model,bcrypt,jsonwebtoken
