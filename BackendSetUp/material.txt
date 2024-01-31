@@ -1,3 +1,4 @@
-// lecture 10
-
-model,bcrypt,jsonwebtoken
+// lecture 9 -> custom api handling and error handling
+// lecture 10 -> model,bcrypt,jsonwebtoken
+// lecture 11 -> upload file in backend using cloudinary,multer
+// file-user-localstorage-multer-cloudinary
