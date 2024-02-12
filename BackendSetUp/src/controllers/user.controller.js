@@ -1,9 +1,25 @@
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js'
-import {User} from '../models/user.model.js'
+import { User } from '../models/user.model.js'
 import { uploadOnCloudinary } from '../utils/cloudinary.js'
-import { ApiResponse } from '../utils/ApiResponse.js'; 
+import { ApiResponse } from '../utils/ApiResponse.js';
 
+const generateAccessAndRefreshToken = async (userId) => {
+    try {
+        const user = await User.findById(userId)
+        const accessToken = user.generateAccessToken()
+        const refreshToken = user.generateRefreshToken()
+
+        user.refreshToken = refreshToken
+        await user.save({ validateBeforeSave: false })
+
+        return { accessToken, refreshToken }
+
+
+    } catch (error) {
+        throw new ApiError(500, "something went wrong while generation refresh and access token")
+    }
+}
 
 const registerUser = asyncHandler(async (req, res) => {
     // get user details from frontend
@@ -15,7 +31,7 @@ const registerUser = asyncHandler(async (req, res) => {
     // remove pass and refresh token field from response
     // check for user creation
     // return response
-    
+
     // get user details
     const { fullName, email, username, password } = req.body // when data come from form,json
     console.log("email:", email);
@@ -41,7 +57,7 @@ const registerUser = asyncHandler(async (req, res) => {
     // const coverImageLocalPath = req.files?.coverImage[0]?.path;
 
     let coverImageLocalPath;
-    if(req.files && Array.isArray(req.files.coverImage)&& req.files.coverImage.length >0){
+    if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
         coverImageLocalPath = req.files.coverImage[0].path
     }
     if (!avatarLocalPath) {
@@ -75,9 +91,91 @@ const registerUser = asyncHandler(async (req, res) => {
 
     //return response
     return res.status(201).json(
-        new ApiResponse(200,createdUser,"User registered  successfully")
+        new ApiResponse(200, createdUser, "User registered  successfully")
     )
 
 })
+const loginUser = asyncHandler(async (req, res) => {
+    //req body->  data
+    //username or email 
+    // find the user
+    // password check
+    // access and refresh token
+    // send cookie
 
-export { registerUser }
+    const { email, username, password } = req.body
+    if (!username || !email) {
+        throw new ApiError(400, "username or password is required")
+    }
+    const user = await User.findOne({
+        $or: [{ username }, { email }]
+    })
+
+    if (!user) {
+        throw new ApiError(404, "user does not exist")
+    }
+
+    const isPasswordValid = await user.isPasswordCorrect(password)
+
+    if (!isPasswordValid) {
+        throw new ApiError(401, "password  incorrect")
+    }
+
+
+    const { accessToken, refreshToken } = await
+        generateAccessAndRefreshToken(user._id)
+
+    const loggedInUser = await User.findById(user._id)
+    select("-password -refreshToken")
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res.
+        status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                    user:loggedInUser,accessToken,
+                    refreshToken
+                },
+                "User logged in successfully"
+            )
+        )
+})
+
+const logoutUser = asyncHandler(async(req,res)=>{
+    await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set:{
+                refreshToken:undefined
+            }
+        },
+        {
+            new:true
+        }
+    )
+    const options = {
+        httpOnly:true,
+        secure:true
+    }
+
+    return res
+    .status(200)
+    .clearCookies("accessToken",options)
+    .clearCookies("refreshToken",options)
+    .json(new ApiResponse(200,{},"user logged out"))
+})
+
+
+export {
+    registerUser,
+    loginUser,
+    logoutUser
+}
