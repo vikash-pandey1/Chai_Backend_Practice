@@ -25,6 +25,9 @@ connectDB()
 
 
 
+    
+// another way to connect db
+
 /*
 import express from "express"
 const app = express()
